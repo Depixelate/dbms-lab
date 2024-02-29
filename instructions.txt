@@ -1,0 +1,3 @@
+for 1-6, add 2 tuples to relations, then select *, then add 1 for every constraint violated.
+for alter, desc table before, then execute alter, then desc table after
+for increasing size of fields, show limit in prev command, then alter, then show higher limit now.
