@@ -81,7 +81,7 @@ CREATE TABLE PART_ORDER(
 desc part_order;
 
 
-Rem: Inserting 2 good rows into loc, then one bad row.
+Rem: Inserting 2 good rows into loc, then one bad row per constraint.
 INSERT INTO LOC VALUES (
     '603103',
     'Chennai'
@@ -301,7 +301,7 @@ insert into ord values(
     DATE '2023-01-05'
 );
 
-Rem: Enter 2 good rows for the table, then one bad row per error TYPE
+Rem: Enter 2 good rows for the table, then one bad row per constraint.
 insert into PART values(
     'P001',
     'Pliers',
