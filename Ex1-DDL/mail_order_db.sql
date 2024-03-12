@@ -443,9 +443,14 @@ Rem: Note that we can't add a NOT NULL constraint as a table level constraint,
 Rem: Not NULL is always a column level constraint.
 Rem: So we have to modify the col we want to add the NOT NULL constraint to 
 Rem: In order to add the constraint.
-desc ord;
+    
+Rem: desc ord;
+insert into ord values ('O004', 'E001', 'C001', NULL, DATE '2024-02-01');
+select * from ord;
+delete from ord where order_no = "O004";
 alter table ord MODIFY (rec_date NOT NULL);
-desc ord;
+Rem: desc ord;
+insert into ord values ('O004', 'E001', 'C001', NULL, DATE '2024-02-01');
 
 Rem: Change the foreign key constraint on the order, so that when the user cancels an order, the order can be deleted from the database, and all info about the order is also deleted.
 
@@ -459,6 +464,9 @@ Rem: Note that upto now we were setting foreign keys as column-level constraints
 Rem: where you could omit FOREIGN KEY(<col_name>)
 Rem: Now that we have to add it as a table-level constraint, 
 Rem: we have to specify add constraint <name> FOREIGN KEY(<col_name>) references <other_table>(<other_table_pk);
+
+delete from ord where order_no = 'O002';
+
 desc part_order;
 alter table part_order drop constraint part_order_order_no_fk;
 alter table part_order add constraint part_order_order_no_fk FOREIGN KEY(order_no) References ORD(order_no) ON DELETE CASCADE;
