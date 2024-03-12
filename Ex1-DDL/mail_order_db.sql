@@ -400,17 +400,17 @@ insert into part_order values(
     0
 );
 
-Rem: Adding reorder level field to part.
+Rem: It is identified that the following attributes are to be included in respective relations:Parts (reorder level), Employees (hiredate)
 desc part;
 alter table part add reorder_level Number(6);
 desc part;
 
-Rem: Adding hiredate to employee TABLE
+Rem:. It is identified that the following attributes are to be included in respective relations:Parts(reorder level), Employees (hiredate)
 desc emp;
 alter table emp add hiredate DATE;
 desc emp;
 
-Rem: Increase width of customer name field
+Rem: The width of a customer name is not adequate for most of the customers.
 desc CUST;
 insert into cust values(
     'C004',
@@ -433,12 +433,13 @@ insert into cust values(
 );
 select * from cust;
 
-Rem: Remove DOB from customer
+Rem: The date-of-birth of a customer can be addressed later / removed from the schema.
 desc cust;
 alter table cust drop column dob;
 desc cust;
 
 Rem: Make it mandatory that the order has a recieved dated
+
 Rem: Note that we can't add a NOT NULL constraint as a table level constraint,
 Rem: Not NULL is always a column level constraint.
 Rem: So we have to modify the col we want to add the NOT NULL constraint to 
@@ -447,13 +448,13 @@ Rem: In order to add the constraint.
 Rem: desc ord;
 insert into ord values ('O004', 'E001', 'C001', NULL, DATE '2024-02-01');
 select * from ord;
-delete from ord where order_no = "O004";
+delete from ord where order_no = 'O004';
 alter table ord MODIFY (rec_date NOT NULL);
 Rem: desc ord;
 insert into ord values ('O004', 'E001', 'C001', NULL, DATE '2024-02-01');
 
-Rem: Change the foreign key constraint on the order, so that when the user cancels an order, the order can be deleted from the database, and all info about the order is also deleted.
-
+Rem: A customer may cancel an order or ordered part(s) may not be available in a stock. Hence on removing the details of the order, ensure that all the corresponding details are also deleted
+    
 Rem: Note that you don't set ON DELETE UPDATE, ON DELETE CASCADE, etc. on the primary key and have it apply to every foreign key when the primary key gets updated/deleted.
 Rem: Rather, you set the constraint of ON UPDATE, ON DELETE on the foreign key itself.
 Rem: By doing this, you can specify different behaviours for different foreign keys. 
