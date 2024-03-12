@@ -12,7 +12,7 @@ DROP TABLE EMP;
 DROP TABLE LOC;
 
 Rem: Q 1-6
-
+    
 Rem: Creating loc
 CREATE TABLE LOC(
     PINCODE CHAR(6) CONSTRAINT LOC_PINCODE_PK PRIMARY KEY,
@@ -404,17 +404,17 @@ insert into part_order values(
 
 Rem: Q 7-11
 
-Rem: It is identified that the following attributes are to be included in respective relations:Parts (reorder level), Employees (hiredate)
+Rem: 7. It is identified that the following attributes are to be included in respective relations:Parts (reorder level), Employees (hiredate)
 desc part;
 alter table part add reorder_level Number(6);
 desc part;
 
-Rem:. It is identified that the following attributes are to be included in respective relations:Parts(reorder level), Employees (hiredate)
+Rem:. 7. It is identified that the following attributes are to be included in respective relations:Parts(reorder level), Employees (hiredate)
 desc emp;
 alter table emp add hiredate DATE;
 desc emp;
 
-Rem: The width of a customer name is not adequate for most of the customers.
+Rem: 8. The width of a customer name is not adequate for most of the customers.
 desc CUST;
 insert into cust values(
     'C004',
@@ -437,12 +437,12 @@ insert into cust values(
 );
 select * from cust;
 
-Rem: The date-of-birth of a customer can be addressed later / removed from the schema.
+Rem: 9. The date-of-birth of a customer can be addressed later / removed from the schema.
 desc cust;
 alter table cust drop column dob;
 desc cust;
 
-Rem: Make it mandatory that the order has a recieved dated
+Rem: 10. Make it mandatory that the order has a recieved dated
 
 Rem: Note that we can't add a NOT NULL constraint as a table level constraint,
 Rem: Not NULL is always a column level constraint.
@@ -457,7 +457,7 @@ alter table ord MODIFY (rec_date NOT NULL);
 Rem: desc ord;
 insert into ord values ('O004', 'E001', 'C001', NULL, DATE '2024-02-01');
 
-Rem: A customer may cancel an order or ordered part(s) may not be available in a stock. Hence on removing the details of the order, ensure that all the corresponding details are also deleted
+Rem: 11. A customer may cancel an order or ordered part(s) may not be available in a stock. Hence on removing the details of the order, ensure that all the corresponding details are also deleted
     
 Rem: Note that you don't set ON DELETE UPDATE, ON DELETE CASCADE, etc. on the primary key and have it apply to every foreign key when the primary key gets updated/deleted.
 Rem: Rather, you set the constraint of ON UPDATE, ON DELETE on the foreign key itself.
