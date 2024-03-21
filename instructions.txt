@@ -11,3 +11,4 @@ For lms, run script file, then run spool, then save the output and upload it to 
 Make sure to name constraints
 Make sure to make size of data types exactly right, not too big or small.
 updatable operations -> any operation which changes database state, like update, delete, insert, etc.
+if you do operations, then have statements to show changes in database. After roll back execute those same change-displaying statements again to show that changes have been reverted.
