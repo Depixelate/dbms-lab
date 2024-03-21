@@ -8,3 +8,5 @@ Remove Notes to Self when uploading
 Replace comments for constraint violations with exact type of constraint it is violating.
 Replace Notebook with unruled notebook
 For lms, run script file, then run spool, then save the output and upload it to LMS.
+Make sure to name constraints
+Make sure to make size of data types exactly right, not too big or small.
