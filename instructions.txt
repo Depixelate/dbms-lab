@@ -10,3 +10,4 @@ Replace Notebook with unruled notebook
 For lms, run script file, then run spool, then save the output and upload it to LMS.
 Make sure to name constraints
 Make sure to make size of data types exactly right, not too big or small.
+updatable operations -> any operation which changes database state, like update, delete, insert, etc.
