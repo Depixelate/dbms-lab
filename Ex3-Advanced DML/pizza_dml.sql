@@ -84,18 +84,18 @@ where order_list.qty > all (
 );
 
 REM: 9. Display the customer details who placed all pizza types in a single order
-select unique c.cust_id, c.cust_name, c.address, c.phone from orders
+select distinct c.cust_id, c.cust_name, c.address, c.phone from orders
 join customer c on orders.cust_id = c.cust_id
 join order_list on orders.order_no = order_list.order_no
-group by orders.order_no
-having count(order_list.pizza_id) = ALL(
+group by c.cust_id, c.cust_name, c.address, c.phone, orders.order_no
+having count(order_list.pizza_id) = (
 	select count(*) from pizza
 );
 
 REM: Set Operations
 
 REM: 10.Display the order details that contains the pizza quantity more than the average quantity of any of Pan or Italian pizza type.
-select distinct  from orders ords 
+select ords.order_no, ords.cust_id, ords.order_date, ords.delv_date from orders ords
 join order_list olst on ords.order_no = olst.order_no
 where olst.qty > ANY 
 (
@@ -110,7 +110,7 @@ where olst.qty > ANY
 		join pizza on order_list.pizza_id = pizza.pizza_id
 		where LOWER(pizza.pizza_type) = 'italian'
 	)
-)
+);
 
 REM: 11. Find the order(s) that contains Pan pizza but not the Italian pizza type.
 (
@@ -118,24 +118,24 @@ REM: 11. Find the order(s) that contains Pan pizza but not the Italian pizza typ
 	join order_list on orders.order_no = order_list.order_no
 	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'pan')
 )
-EXCEPT
+MINUS
 (
 	select distinct orders.order_no, orders.cust_id, orders.order_date, orders.delv_date from orders
 	join order_list on orders.order_no = order_list.order_no
 	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'italian')
-)
+);
 
 REM: 12. Display the customer(s) who ordered both Italian and Grilled pizza type.
 (
 	select distinct cust.cust_id, cust.cust_name, cust.address, cust.phone from customer cust
 	join orders ords on cust.cust_id = ords.cust_id
 	join order_list olst on ords.order_no = olst.order_no
-	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'italian')
+	where olst.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'italian')
 )
 INTERSECT
 (
 	select distinct cust.cust_id, cust.cust_name, cust.address, cust.phone from customer cust
 	join orders ords on cust.cust_id = ords.cust_id
 	join order_list olst on ords.order_no = olst.order_no
-	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'grilled')
-)
+	where olst.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'grilled')
+);
