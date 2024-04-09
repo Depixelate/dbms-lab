@@ -91,3 +91,51 @@ group by orders.order_no
 having count(order_list.pizza_id) = ALL(
 	select count(*) from pizza
 );
+
+REM: Set Operations
+
+REM: 10.Display the order details that contains the pizza quantity more than the average quantity of any of Pan or Italian pizza type.
+select distinct  from orders ords 
+join order_list olst on ords.order_no = olst.order_no
+where olst.qty > ANY 
+(
+	(
+		select AVG(qty) as threshold from order_list
+		join pizza on order_list.pizza_id = pizza.pizza_id
+		where LOWER(pizza.pizza_type) = 'pan'
+	)
+	UNION
+	(
+		select AVG(qty) as threshold from order_list
+		join pizza on order_list.pizza_id = pizza.pizza_id
+		where LOWER(pizza.pizza_type) = 'italian'
+	)
+)
+
+REM: 11. Find the order(s) that contains Pan pizza but not the Italian pizza type.
+(
+	select distinct orders.order_no, orders.cust_id, orders.order_date, orders.delv_date from orders
+	join order_list on orders.order_no = order_list.order_no
+	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'pan')
+)
+EXCEPT
+(
+	select distinct orders.order_no, orders.cust_id, orders.order_date, orders.delv_date from orders
+	join order_list on orders.order_no = order_list.order_no
+	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'italian')
+)
+
+REM: 12. Display the customer(s) who ordered both Italian and Grilled pizza type.
+(
+	select distinct cust.cust_id, cust.cust_name, cust.address, cust.phone from customer cust
+	join orders ords on cust.cust_id = ords.cust_id
+	join order_list olst on ords.order_no = olst.order_no
+	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'italian')
+)
+INTERSECT
+(
+	select distinct cust.cust_id, cust.cust_name, cust.address, cust.phone from customer cust
+	join orders ords on cust.cust_id = ords.cust_id
+	join order_list olst on ords.order_no = olst.order_no
+	where order_list.pizza_id = (select distinct pizza_id from pizza where LOWER(pizza_type) = 'grilled')
+)
