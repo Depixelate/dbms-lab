@@ -1,118 +1,281 @@
 REM: 1. An user is interested to have list of pizza’s in the range of Rs.200-250. Create a view  Pizza_200_250 which keeps the pizza details that has the price in the range of 200 to 250.
 
-CREATE OR REPLACE view Pizza_200_250 AS (
-	select * from pizza 
-	where unit_price between 200 AND 250
+DROP VIEW PIZZA_200_250;
+DROP VIEW PIZZA_TYPE_ORDER;
+DROP VIEW SPANISH_CUSTOMERS;
+
+SET AUTOCOMMIT OFF;
+
+CREATE OR REPLACE VIEW PIZZA_200_250 AS (
+	SELECT
+		*
+	FROM
+		PIZZA
+	WHERE
+		UNIT_PRICE BETWEEN 200 AND 250
 );
 
-select * from Pizza_200_250;
+SELECT
+	*
+FROM
+	PIZZA_200_250;
 
 SAVEPOINT Q1;
 
-REM: Insert into view
-insert into Pizza_200_250 values (
-	'p010', 'Hawaian', 225
-);
-
-select * from Pizza_200_250;
+ROLLBACK TO Q1;
 
 Rem: Update View
-UPDATE Pizza_200_250
-SET unit_price = unit_price * 1.02;
+UPDATE PIZZA_200_250
+SET
+	UNIT_PRICE = UNIT_PRICE * 1.02;
 
-select * from Pizza_200_250;
+SELECT
+	*
+FROM
+	PIZZA_200_250;
 
-Rem: Delete from view
-delete from Pizza_200_250
-where unit_price >= 230;
+ROLLBACK TO Q1;
 
-select * from Pizza_200_250;
-
-ROLLBACK To Q1;
-
-select * from Pizza_200_250;
-
-REM: 2.  Pizza company owner is interested to know the number of pizza types ordered in each order. 
-REM: Create a view Pizza_Type_Order that lists the number of pizza types ordered in each order.
-
-CREATE OR REPLACE view Pizza_Type_Order(order_no, num_pizza_types) as (
-	select orders.order_no, COUNT(order_list.pizza_id) from orders
-	left join order_list on orders.order_no = order_list.order_no
-	group by orders.order_no
+REM: Insert into view
+INSERT INTO PIZZA_200_250 VALUES (
+	'p010',
+	'Hawaian',
+	225
 );
 
-select * from Pizza_Type_Order;
+ROLLBACK TO Q1;
+
+SELECT
+	*
+FROM
+	PIZZA_200_250;
+
+SELECT
+	*
+FROM
+	PIZZA;
+
+ROLLBACK TO Q1;
+
+ROLLBACK TO Q1;
+
+Rem: Delete from view
+DELETE FROM PIZZA_200_250
+WHERE
+	UNIT_PRICE >= 230;
+
+SELECT
+	*
+FROM
+	PIZZA_200_250;
+
+ROLLBACK TO Q1;
+
+SELECT
+	*
+FROM
+	PIZZA_200_250;
+
+REM: 2.  Pizza company owner is interested to know the number of pizza types ordered in each order.
+REM: Create a view Pizza_Type_Order that lists the number of pizza types ordered in each order.
+
+CREATE OR REPLACE VIEW PIZZA_TYPE_ORDER(
+	ORDER_NO,
+	NUM_PIZZA_TYPES
+) AS (
+	SELECT
+		ORDERS.ORDER_NO,
+		COUNT(ORDER_LIST.PIZZA_ID)
+	FROM
+		ORDERS
+		LEFT JOIN ORDER_LIST
+		ON ORDERS.ORDER_NO = ORDER_LIST.ORDER_NO
+	GROUP BY
+		ORDERS.ORDER_NO
+);
+
+SELECT
+	*
+FROM
+	PIZZA_TYPE_ORDER;
 
 SAVEPOINT Q2;
 
 REM: Insert into view
-INSERT into Pizza_Type_Order values (
-	'OP900', 12
+INSERT INTO PIZZA_TYPE_ORDER VALUES (
+	'OP900',
+	12
 );
 
-select * from Pizza_Type_Order;
+SELECT
+	*
+FROM
+	PIZZA_TYPE_ORDER;
 
 REM: Update view
 
-Update Pizza_Type_Order
-SET num_pizza_types = num_pizza_types + 1;
+UPDATE PIZZA_TYPE_ORDER
+SET
+	NUM_PIZZA_TYPES = NUM_PIZZA_TYPES + 1;
 
-select * from Pizza_Type_Order;
+SELECT
+	*
+FROM
+	PIZZA_TYPE_ORDER;
 
 REM: Delete from view
-Delete from Pizza_type_order
-where num_pizza_types < 2;
+DELETE FROM PIZZA_TYPE_ORDER
+WHERE
+	NUM_PIZZA_TYPES < 2;
 
-select * from Pizza_Type_Order;
+SELECT
+	*
+FROM
+	PIZZA_TYPE_ORDER;
 
-ROLLBACK To Q2;
+ROLLBACK TO Q2;
 
-select * from Pizza_Type_Order;
+SELECT
+	*
+FROM
+	PIZZA_TYPE_ORDER;
 
-REM: 3. To know about the customers of Spanish pizza, create a view Spanish_Customers that list out 
+REM: 3. To know about the customers of Spanish pizza, create a view Spanish_Customers that list out
 REM: the customer id, name, order_no of customers who ordered Spanish type
 
-CREATE OR REPLACE VIEW Spanish_Customers AS (
-	select distinct cust.cust_id, cust.cust_name, orders.order_no from customer cust
-	join orders on cust.cust_id = orders.cust_id
-	join order_list on orders.order_no = order_list.order_no
-	where order_list.pizza_id = (select pizza_id from pizza where LOWER(pizza_type) = 'spanish')
+CREATE OR REPLACE VIEW SPANISH_CUSTOMERS AS (
+	SELECT CUST.CUST_ID, CUST.CUST_NAME, ORDER_LIST.ORDER_NO FROM CUSTOMER CUST
+		JOIN ORDERS
+		ON CUST.CUST_ID = ORDERS.CUST_ID
+		JOIN ORDER_LIST
+		ON ORDERS.ORDER_NO = ORDER_LIST.ORDER_NO
+	WHERE
+		ORDER_LIST.PIZZA_ID = (
+			SELECT
+				PIZZA_ID
+			FROM
+				PIZZA
+			WHERE
+				LOWER(PIZZA_TYPE) = 'spanish'
+		)
 );
 
-select * from Spanish_Customers;
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
+
+SELECT
+	COLUMN_NAME,
+	UPDATABLE
+FROM
+	USER_UPDATABLE_COLUMNS
+WHERE
+	TABLE_NAME = 'SPANISH_CUSTOMERS';
 
 SAVEPOINT Q3;
 
 REM: Insert into view: (non-primary key preserved table included)
-Insert into Spanish_Customers VALUES (
+INSERT INTO SPANISH_CUSTOMERS VALUES (
 	'c011',
 	'Ajay',
 	'OP011'
 );
 
-select * from Spanish_Customers;
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
 
 REM: Insert into view: (only primary key preserved table)
-Insert into Spanish_Customers(cust_id) VALUES (
-	'c011'
+INSERT INTO SPANISH_CUSTOMERS(
+	ORDER_NO
+) VALUES (
+	'OP900'
 );
 
-select * from Spanish_Customers;
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
 
-REM: Update View
-Update Spanish_Customers
-SET cust_name = 'Ram'
-WHERE cust_id = 'c011';
+SELECT
+	*
+FROM
+	CUSTOMER;
 
-select * from Spanish_Customers;
+SELECT
+	*
+FROM
+	ORDERS;
+
+REM: Update View(Non-key-preserved)
+UPDATE SPANISH_CUSTOMERS
+SET
+	CUST_NAME = 'Ram'
+WHERE
+	CUST_ID = 'c001';
+
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
+
+REM: Update View(Key-preserved)
+UPDATE SPANISH_CUSTOMERS
+SET
+	ORDER_NO = 'OP801'
+WHERE
+	ORDER_NO = 'OP100';
+
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
+
+SELECT
+	*
+FROM
+	ORDERS;
+
+SELECT
+	*
+FROM
+	CUSTOMER;
 
 REM: Delete from View
-Delete from Spanish_Customers
-Where cust_id = 'c001';
+DELETE FROM SPANISH_CUSTOMERS
+WHERE
+	CUST_ID = 'c001';
 
-select * from Spanish_Customers;
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
 
-ROLLBACK to Q3;
+SELECT
+	*
+FROM
+	ORDERS;
 
-select * from Spanish_Customers;
-	
+SELECT
+	*
+FROM
+	CUSTOMER;
+
+ROLLBACK TO Q3;
+
+SELECT
+	*
+FROM
+	SPANISH_CUSTOMERS;
+
+SELECT
+	*
+FROM
+	ORDERS;
+
+SELECT
+	*
+FROM
+	CUSTOMER;

@@ -1,0 +1,415 @@
+SQL> @'Ex6/proc.sql'
+SQL> REM: 1.Write a stored procedure to display the total number of pizzas ordered by
+SQL> REM: the given order number. (Use IN, OUT)
+SQL> 
+SQL> 
+SQL> SET SERVEROUTPUT ON
+SQL> SET ECHO ON
+SQL> 
+SQL> 
+SQL> CREATE OR REPLACE PROCEDURE total_pizzas (ono IN ORDERS.order_no%TYPE, num_orders OUT NUMBER) IS
+  2  BEGIN
+  3  	 select count(*) INTO num_orders from ORDERS ord
+  4  	 JOIN ORDER_LIST olst on ord.order_no = olst.order_no
+  5  	 WHERE ord.order_no = ono;
+  6  EXCEPTION
+  7  	 WHEN no_data_found THEN
+  8  	     dbms_output.put_line('ERROR! No such order number exists!');
+  9  END;
+ 10  /
+
+Procedure created.
+
+SQL> 
+SQL> 
+SQL> 
+SQL> 
+SQL> DECLARE
+  2  	 order_no ORDERS.order_no%TYPE;
+  3  	 num_pizzas NUMBER;
+  4  BEGIN
+  5  	 order_no := '&order_no';
+  6  	 total_pizzas(order_no, num_pizzas);
+  7  	 IF num_pizzas = 0 THEN
+  8  	     RAISE no_data_found;
+  9  	 END IF;
+ 10  	 dbms_output.put_line('Number of pizzas corresponding to ' || TO_CHAR(order_no) || ' is ' || TO_CHAR(num_pizzas));
+ 11  EXCEPTION
+ 12  	 WHEN no_data_found THEN
+ 13  	     dbms_output.put_line('ERROR! No such order number exists!');
+ 14  END;
+ 15  /
+Enter value for order_no: OP100
+old   5:     order_no := '&order_no';
+new   5:     order_no := 'OP100';
+Number of pizzas corresponding to OP100 is 5                                    
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> REM: 2. For the given order number, calculate the Discount as follows:
+SQL> REM: For total amount > 2000 and total amount < 5000: Discount=5%
+SQL> REM: For total amount > 5000 and total amount < 10000: Discount=10%
+SQL> REM: For total amount > 10000: Discount=20%
+SQL> REM: Calculate the total amount (after the discount) and update the same in
+SQL> REM: orders table. Print the order as shown below:
+SQL> REM: ************************************************************
+SQL> REM: Order Number:OP104 Customer Name: Hari
+SQL> REM: Order Date :29-Jun-2015 Phone: 9001200031
+SQL> REM: ************************************************************
+SQL> REM: SNo Pizza Type Qty Price Amount
+SQL> REM: 1. Italian 6 200 1200
+SQL> REM: 2. Spanish 5 260 1300
+SQL> REM: ------------------------------------------------------
+> REM: Total = 11 2500
+SQL> REM: ------------------------------------------------------
+> REM: Total Amount :Rs.2500
+SQL> REM: Discount (5%) :Rs. 125
+SQL> REM: -------------------------- ----
+> REM: Amount to be paid :Rs.2375
+SQL> REM: -------------------------- ----
+> REM: Great Offers! Discount up to 25% on DIWALI Festival Day...
+SQL> REM: *************************************************************
+SQL> ALTER TABLE ORDERS
+  2  ADD discount_total NUMBER;
+ADD discount_total NUMBER
+    *
+ERROR at line 2:
+ORA-01430: column being added already exists in table 
+
+
+SQL> 
+SQL> DECLARE
+  2  	 ono ORDERS.order_no%TYPE;
+  3  	 order_info ORDERS%ROWTYPE;
+  4  	 customer_name CUSTOMER.cust_name%TYPE;
+  5  	 customer_phone CUSTOMER.phone%TYPE;
+  6  	 discount_pct NUMBER;
+  7  	 total_amount NUMBER;
+  8  	 total_qty NUMBER;
+  9  	 discount_amt NUMBER;
+ 10  	 net_amt NUMBER;
+ 11  	 CURSOR c1 (ordno ORDERS.order_no%TYPE) is
+ 12  	     select
+ 13  	     ROWNUM as sno,
+ 14  	     p.pizza_type as p_type,
+ 15  	     olst.qty as quantity,
+ 16  	     p.unit_price as price,
+ 17  	     olst.qty * p.unit_price as amount
+ 18  	     FROM ORDERS ord
+ 19  	     join ORDER_LIST olst on ord.order_no = olst.order_no
+ 20  	     join PIZZA p on olst.pizza_id = p.pizza_id
+ 21  	     where ord.order_no = ordno;
+ 22  BEGIN
+ 23  	 ono := '&order_no';
+ 24  	 total_amount := 0;
+ 25  	 total_qty := 0;
+ 26  
+ 27  
+ 28  	 select * into order_info from orders
+ 29  	 where orders.order_no = ono;
+ 30  
+ 31  
+ 32  	 select cust_name, phone into customer_name, customer_phone from customer
+ 33  	 where customer.cust_id = order_info.cust_id;
+ 34  
+ 35  	 dbms_output.put_line('************************************************************
+ 36  ');
+ 37  	 dbms_output.put_line('Order Number: ' || ono || ' Customer Name: ' || customer_name);
+ 38  	 dbms_output.put_line('Order Date: ' || TO_CHAR(order_info.order_date) || ' Phone: ' || customer_phone);
+ 39  	 dbms_output.put_line('************************************************************');
+ 40  
+ 41  	 dbms_output.put_line('SNo Pizza Type Qty Price Amount');
+ 42  
+ 43  	 for rec in c1(ono) loop
+ 44  	     dbms_output.put_line(rec.sno || '.   ' || rec.p_type || '	 ' || TO_CHAR(rec.quantity) || '   ' || TO_CHAR(rec.price) || '   ' || TO_CHAR(rec.amount));
+ 45  	     total_amount := total_amount + rec.amount;
+ 46  	     total_qty := total_qty + rec.quantity;
+ 47  	 end loop;
+ 48  
+ 49  	 IF total_qty = 0 THEN
+ 50  	     raise no_data_found;
+ 51  	 END IF;
+ 52  
+ 53  	 IF total_amount >= 10000 THEN
+ 54  	     discount_pct := 20;
+ 55  	 ELSIF total_amount >= 5000 THEN
+ 56  	     discount_pct := 10;
+ 57  	 ELSIF total_amount >= 2000 THEN
+ 58  	     discount_pct := 5;
+ 59  	 ELSE
+ 60  	     discount_pct := 0;
+ 61  	 END IF;
+ 62  
+ 63  	 discount_amt := total_amount * discount_pct / 100;
+ 64  	 net_amt := total_amount - discount_amt;
+ 65  
+ 66  	 UPDATE orders
+ 67  	 set discount_total = net_amt
+ 68  	 where orders.order_no = ono;
+ 69  
+ 70  	 dbms_output.put_line('------------------------------------------------------');
+ 71  	 dbms_output.put_line('Total = ' || TO_CHAR(total_qty) || '  ' || TO_CHAR(total_amount));
+ 72  	 dbms_output.put_line('------------------------------------------------------');
+ 73  	 dbms_output.put_line('Total Amount: Rs.' || TO_CHAR(total_amount));
+ 74  	 dbms_output.put_line('Discount (' || TO_CHAR(discount_pct) || '%): Rs.' || TO_CHAR(discount_amt));
+ 75  	 dbms_output.put_line('------------------------------------------------------');
+ 76  	 dbms_output.put_line('Amount to be paid: Rs. ' || TO_CHAR(net_amt));
+ 77  	 dbms_output.put_line('-------------------------- ----');
+ 78  	 dbms_output.put_line('Great Offers! Discount up to 25% on DIWALI Festival Day...');
+ 79  	 dbms_output.put_line('*************************************************************');
+ 80  
+ 81  
+ 82  EXCEPTION
+ 83  	 WHEN no_data_found THEN
+ 84  	     dbms_output.put_line('Error! There is no order with the given order number!');
+ 85  END;
+ 86  /
+Enter value for order_no: OP200
+old  23:     ono := '&order_no';
+new  23:     ono := 'OP200';
+************************************************************
+                   
+Order Number: OP200 Customer Name: Prasanth                                     
+Order Date: 28-JUN-15 Phone: 9444120003                                         
+************************************************************                    
+SNo Pizza Type Qty Price Amount                                                 
+1.   italian   2   200   400                                                    
+2.   pan   6   130   780                                                        
+3.   spanish   8   260   2080                                                   
+------------------------------------------------------                          
+Total = 16  3260                                                                
+------------------------------------------------------                          
+Total Amount: Rs.3260                                                           
+Discount (5%): Rs.163                                                           
+------------------------------------------------------                          
+Amount to be paid: Rs. 3097                                                     
+-------------------------- ----                                                 
+Great Offers! Discount up to 25% on DIWALI Festival Day...                      
+*************************************************************                   
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> 
+SQL> 
+SQL> REM: 3. Write a stored function to display the customer name who ordered highest among the total
+SQL> REM: number of pizzas for a given pizza type.
+SQL> CREATE OR REPLACE PROCEDURE most_pizza_cust(
+  2  	 p_type IN PIZZA.PIZZA_TYPE%TYPE,
+  3  	 c_name out CUSTOMER.cust_name%TYPE
+  4  ) IS
+  5  BEGIN
+  6  	 select a.cust_name into c_name from (
+  7  	     select c.cust_name cust_name from PIZZA p
+  8  	     join ORDER_LIST ol on ol.PIZZA_ID = p.PIZZA_ID
+  9  	     join ORDERS o on o.ORDER_NO = ol.ORDER_NO
+ 10  	     join CUSTOMER c on c.CUST_ID = o.CUST_ID
+ 11  	     where LOWER(p.PIZZA_TYPE) = LOWER(p_type)
+ 12  	     group by c.CUST_ID, c.cust_name
+ 13  	     order by SUM(ol.QTY) DESC
+ 14  	 ) a WHERE ROWNUM = 1;
+ 15  END;
+ 16  /
+
+Procedure created.
+
+SQL> 
+SQL> DECLARE
+  2  	 p_type PIZZA.PIZZA_TYPE%TYPE;
+  3  	 c_name CUSTOMER.CUST_NAME%TYPE;
+  4  BEGIN
+  5  	 p_type := '&pizza_type';
+  6  	 most_pizza_cust(p_type, c_name);
+  7  	 dbms_output.put_line('Name of the customer who has ordered the most ' || p_type || ' is ' || c_name);
+  8  EXCEPTION
+  9  	 when no_data_found THEN
+ 10  	     dbms_output.put_line('Either the pizza type does not exist, or no customer has ever ordered this pizza type!');
+ 11  END;
+ 12  /
+Enter value for pizza_type: Spanish
+old   5:     p_type := '&pizza_type';
+new   5:     p_type := 'Spanish';
+Name of the customer who has ordered the most Spanish is Hari                   
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> REM: 4. Implement Question (2) using a stored function to return the amount to be paid and update the
+SQL> REM: same, for the given order number
+SQL> ALTER TABLE ORDERS
+  2  ADD discount_total NUMBER;
+ADD discount_total NUMBER
+    *
+ERROR at line 2:
+ORA-01430: column being added already exists in table 
+
+
+SQL> 
+SQL> DROP TYPE table_type;
+
+Type dropped.
+
+SQL> DROP TYPE rec_type;
+
+Type dropped.
+
+SQL> 
+SQL> CREATE OR REPLACE TYPE rec_type AS OBJECT (
+  2    sno	     NUMBER,
+  3    p_type VARCHAR2(100),
+  4    qty NUMBER,
+  5    price NUMBER,
+  6    amount NUMBER
+  7  );
+  8  /
+
+Type created.
+
+SQL> 
+SQL> CREATE OR REPLACE TYPE table_type AS TABLE OF rec_type;
+  2  /
+
+Type created.
+
+SQL> 
+SQL> CREATE OR REPLACE PROCEDURE calc_discount(
+  2  	 ono IN ORDERS.order_no%TYPE,
+  3  	 order_info out ORDERS%ROWTYPE,
+  4  	 ret out table_type,
+  5  	 customer_name out CUSTOMER.cust_name%TYPE,
+  6  	 customer_phone out CUSTOMER.phone%TYPE,
+  7  	 discount_pct out NUMBER,
+  8  	 total_amount out NUMBER,
+  9  	 total_qty out NUMBER,
+ 10  	 discount_amt out NUMBER,
+ 11  	 net_amt out NUMBER
+ 12  	 ) IS
+ 13  	 CURSOR c1 (ordno ORDERS.order_no%TYPE) is
+ 14  	     select
+ 15  	     p.pizza_type as p_type,
+ 16  	     olst.qty as quantity,
+ 17  	     p.unit_price as price,
+ 18  	     olst.qty * p.unit_price as amount
+ 19  	     FROM ORDERS ord
+ 20  	     join ORDER_LIST olst on ord.order_no = olst.order_no
+ 21  	     join PIZZA p on olst.pizza_id = p.pizza_id
+ 22  	     where ord.order_no = ordno;
+ 23  	 sno NUMBER;
+ 24  BEGIN
+ 25  	 sno := 1;
+ 26  	 ret := table_type();
+ 27  	 total_amount := 0;
+ 28  	 total_qty := 0;
+ 29  
+ 30  
+ 31  	 select * into order_info from orders
+ 32  	 where orders.order_no = ono;
+ 33  
+ 34  
+ 35  	 select cust_name, phone into customer_name, customer_phone from customer
+ 36  	 where customer.cust_id = order_info.cust_id;
+ 37  
+ 38  
+ 39  	 for rec in c1(ono) loop
+ 40  	     ret.extend;
+ 41  	     ret(ret.count) := rec_type(sno, rec.p_type, rec.quantity, rec.price, rec.amount);
+ 42  	     total_amount := total_amount + rec.amount;
+ 43  	     total_qty := total_qty + rec.quantity;
+ 44  	     sno := sno + 1;
+ 45  	 end loop;
+ 46  
+ 47  
+ 48  	 IF total_amount >= 10000 THEN
+ 49  	     discount_pct := 20;
+ 50  	 ELSIF total_amount >= 5000 THEN
+ 51  	     discount_pct := 10;
+ 52  	 ELSIF total_amount >= 2000 THEN
+ 53  	     discount_pct := 5;
+ 54  	 ELSE
+ 55  	     discount_pct := 0;
+ 56  	 END IF;
+ 57  
+ 58  
+ 59  	 discount_amt := total_amount * discount_pct / 100;
+ 60  	 net_amt := total_amount - discount_amt;
+ 61  
+ 62  
+ 63  	 UPDATE orders
+ 64  	 set discount_total = net_amt
+ 65  	 where orders.order_no = ono;
+ 66  END;
+ 67  /
+
+Procedure created.
+
+SQL> 
+SQL> 
+SQL> DECLARE
+  2  	 ono ORDERS.order_no%TYPE;
+  3  	 order_info ORDERS%ROWTYPE;
+  4  	 ret table_type;
+  5  	 customer_name CUSTOMER.cust_name%TYPE;
+  6  	 customer_phone CUSTOMER.phone%TYPE;
+  7  	 discount_pct NUMBER;
+  8  	 total_amount NUMBER;
+  9  	 total_qty NUMBER;
+ 10  	 discount_amt NUMBER;
+ 11  	 net_amt NUMBER;
+ 12  BEGIN
+ 13  	 ono := '&order_no';
+ 14  	 calc_discount(ono, order_info, ret, customer_name, customer_phone, discount_pct, total_amount, total_qty, discount_amt, net_amt);
+ 15  	 IF total_qty = 0 THEN
+ 16  	     raise no_data_found;
+ 17  	 END IF;
+ 18  	 dbms_output.put_line('************************************************************
+ 19  ');
+ 20  	 dbms_output.put_line('Order Number: ' || ono || ' Customer Name: ' || customer_name);
+ 21  	 dbms_output.put_line('Order Date: ' || TO_CHAR(order_info.order_date) || ' Phone: ' || customer_phone);
+ 22  	 dbms_output.put_line('************************************************************');
+ 23  
+ 24  
+ 25  	 dbms_output.put_line('SNo Pizza Type Qty Price Amount');
+ 26  	 for i in 1..ret.count loop
+ 27  	     dbms_output.put_line(ret(i).sno || '.   ' || ret(i).p_type || '   ' || TO_CHAR(ret(i).qty) || '   ' || TO_CHAR(ret(i).price) || '	 ' || TO_CHAR(ret(i).amount));
+ 28  	 end loop;
+ 29  	 dbms_output.put_line('------------------------------------------------------');
+ 30  	 dbms_output.put_line('Total = ' || TO_CHAR(total_qty) || '  ' || TO_CHAR(total_amount));
+ 31  	 dbms_output.put_line('------------------------------------------------------');
+ 32  	 dbms_output.put_line('Total Amount: Rs.' || TO_CHAR(total_amount));
+ 33  	 dbms_output.put_line('Discount (' || TO_CHAR(discount_pct) || '%): Rs.' || TO_CHAR(discount_amt));
+ 34  	 dbms_output.put_line('------------------------------------------------------');
+ 35  	 dbms_output.put_line('Amount to be paid: Rs. ' || TO_CHAR(net_amt));
+ 36  	 dbms_output.put_line('-------------------------- ----');
+ 37  	 dbms_output.put_line('Great Offers! Discount up to 25% on DIWALI Festival Day...');
+ 38  dbms_output.put_line('*************************************************************');
+ 39  EXCEPTION
+ 40  	 WHEN no_data_found THEN
+ 41  	     dbms_output.put_line('Error! There is no order with the given order number!');
+ 42  END;
+ 43  /
+Enter value for order_no: OP300
+old  13:     ono := '&order_no';
+new  13:     ono := 'OP300';
+************************************************************
+                   
+Order Number: OP300 Customer Name: Neethu                                       
+Order Date: 29-JUN-15 Phone: 9840112003                                         
+************************************************************                    
+SNo Pizza Type Qty Price Amount                                                 
+1.   italian   3   200   600                                                    
+------------------------------------------------------                          
+Total = 3  600                                                                  
+------------------------------------------------------                          
+Total Amount: Rs.600                                                            
+Discount (0%): Rs.0                                                             
+------------------------------------------------------                          
+Amount to be paid: Rs. 600                                                      
+-------------------------- ----                                                 
+Great Offers! Discount up to 25% on DIWALI Festival Day...                      
+*************************************************************                   
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> spool off

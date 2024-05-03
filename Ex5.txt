@@ -1,0 +1,277 @@
+SQL> @'Ex5/pizza_pl.sql'
+SQL> REM: 1.Check whether the given pizza type is available. If available, display its unit price. If not,
+SQL> REM: display “The pizza is not available / Invalid pizza type”
+SQL> 
+SQL> REM: Using implicit cursor
+SQL> set serveroutput on
+SQL> 
+SQL> REM: Pizza
+SQL> REM:select * from pizza;
+SQL> 
+SQL> declare
+  2  p_type pizza.pizza_type%TYPE;
+  3  p_price pizza.unit_price%TYPE;
+  4  begin
+  5  	     p_type:='&pizza_type';
+  6  	     select unit_price into p_price from pizza
+  7  	     where pizza_type = p_type;
+  8  	     dbms_output.put_line(p_type || ' unit price = ' || TO_CHAR(p_price));
+  9  	     EXCEPTION
+ 10  		     WHEN no_data_found then
+ 11  			     dbms_output.put_line('The pizza is not available / Invalid pizza type');
+ 12  end;
+ 13  /
+Enter value for pizza_type: spanish
+old   5: 	p_type:='&pizza_type';
+new   5: 	p_type:='spanish';
+spanish unit price = 260                                                        
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> REM: 2. For the given customer name and a range of order date, find whether a customer had placed any
+SQL> REM: order, if so display the number of orders placed by the customer along with the order number(s).
+SQL> 
+SQL> REM: select * from customer;
+SQL> REM: select * from orders;
+SQL> 
+SQL> declare
+  2  no_records EXCEPTION;
+  3  PRAGMA exception_init(no_records, -20001 );
+  4  c_name customer.cust_name%TYPE;
+  5  range_start DATE;
+  6  range_end DATE;
+  7  num_orders NUMBER(6);
+  8  cursor c1 is
+  9  	     select customer.cust_name, orders.order_no, orders.order_date from customer
+ 10  	     join orders on orders.cust_id = customer.cust_id;
+ 11  begin
+ 12  	     c_name := '&customer_name';
+ 13  	     range_start := to_date('&range_start', 'dd/mm/yyyy');
+ 14  	     range_end := to_date('&range_end', 'dd/mm/yyyy');
+ 15  	     num_orders := 0;
+ 16  	     for record in c1 loop
+ 17  		     if record.cust_name = c_name and record.order_date >= range_start and record.order_date <= range_end then
+ 18  			     if num_orders = 0 then
+ 19  				     dbms_output.put_line('Order numbers of the orders the customer has placed: ');
+ 20  			     end if;
+ 21  			     num_orders := num_orders + 1;
+ 22  			     dbms_output.put_line('Order no.: ' || TO_CHAR(record.order_no));
+ 23  		     end if;
+ 24  	     end loop;
+ 25  	     if num_orders = 0 then
+ 26  		     raise no_records;
+ 27  	     end if;
+ 28  	     dbms_output.put_line('Total number of orders: ' || TO_CHAR(num_orders));
+ 29  	     EXCEPTION
+ 30  		     WHEN no_records then
+ 31  			     dbms_output.put_line('No orders by the given customer in the given time frame!');
+ 32  end;
+ 33  /
+Enter value for customer_name: Hari
+old  12: 	c_name := '&customer_name';
+new  12: 	c_name := 'Hari';
+Enter value for range_start: 28/06/2015
+old  13: 	range_start := to_date('&range_start', 'dd/mm/yyyy');
+new  13: 	range_start := to_date('28/06/2015', 'dd/mm/yyyy');
+Enter value for range_end: 28/06/2015
+old  14: 	range_end := to_date('&range_end', 'dd/mm/yyyy');
+new  14: 	range_end := to_date('28/06/2015', 'dd/mm/yyyy');
+Order numbers of the orders the customer has placed:                            
+Order no.: OP100                                                                
+Total number of orders: 1                                                       
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> REM: 3. Display the customer name along with the details of pizza type and its quantity ordered for the
+SQL> REM: given order number. Also find the total quantity ordered for the given order number as shown
+SQL> REM: below:
+SQL> 
+SQL> REM: select * from orders;
+SQL> REM: select * from customer;
+SQL> REM: select * from order_list;
+SQL> 
+SQL> declare
+  2  no_records2 EXCEPTION;
+  3  PRAGMA exception_init(no_records2, -20002 );
+  4  oid orders.order_no%TYPE;
+  5  total_quantity order_list.qty%TYPE;
+  6  name_printed boolean;
+  7  cursor c1 is
+  8  	     select orders.order_no, customer.cust_name, pizza.pizza_type, order_list.qty from orders
+  9  	     join order_list on orders.order_no = order_list.order_no
+ 10  	     join customer on customer.cust_id = orders.cust_id
+ 11  	     join pizza on pizza.pizza_id = order_list.pizza_id;
+ 12  begin
+ 13  	     total_quantity := 0;
+ 14  	     name_printed := false;
+ 15  	     oid := '&oid';
+ 16  	     for record in c1 loop
+ 17  		     if record.order_no = oid then
+ 18  			     if not name_printed then
+ 19  				     dbms_output.put_line('Customer name: ' || record.cust_name);
+ 20  				     name_printed := true;
+ 21  			     end if;
+ 22  			     dbms_output.put_line('Type: ' || record.pizza_type || ' Quantity: ' || record.qty);
+ 23  			     total_quantity := total_quantity + record.qty;
+ 24  		     end if;
+ 25  	     end loop;
+ 26  	     if total_quantity = 0 then
+ 27  		     raise no_records2;
+ 28  	     end if;
+ 29  	     dbms_output.put_line('Total Qty: ' || total_quantity);
+ 30  	     EXCEPTION
+ 31  		     WHEN no_records2 then
+ 32  			     dbms_output.put_line('No such order exists!');
+ 33  end;
+ 34  /
+Enter value for oid: OP100
+old  15: 	oid := '&oid';
+new  15: 	oid := 'OP100';
+Customer name: Hari                                                             
+Type: pan Quantity: 3                                                           
+Type: grilled Quantity: 2                                                       
+Type: italian Quantity: 2                                                       
+Type: spanish Quantity: 5                                                       
+Type: supremo Quantity: 4                                                       
+Total Qty: 16                                                                   
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> @'Ex5/pizza_pl.sql'
+SQL> REM: 1.Check whether the given pizza type is available. If available, display its unit price. If not,
+SQL> REM: display “The pizza is not available / Invalid pizza type”
+SQL> 
+SQL> REM: Using implicit cursor
+SQL> set serveroutput on
+SQL> 
+SQL> REM: Pizza
+SQL> REM:select * from pizza;
+SQL> 
+SQL> declare
+  2  p_type pizza.pizza_type%TYPE;
+  3  p_price pizza.unit_price%TYPE;
+  4  begin
+  5  	     p_type:='&pizza_type';
+  6  	     select unit_price into p_price from pizza
+  7  	     where pizza_type = p_type;
+  8  	     dbms_output.put_line(p_type || ' unit price = ' || TO_CHAR(p_price));
+  9  	     EXCEPTION
+ 10  		     WHEN no_data_found then
+ 11  			     dbms_output.put_line('The pizza is not available / Invalid pizza type');
+ 12  end;
+ 13  /
+Enter value for pizza_type: jamaican
+old   5: 	p_type:='&pizza_type';
+new   5: 	p_type:='jamaican';
+The pizza is not available / Invalid pizza type                                 
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> REM: 2. For the given customer name and a range of order date, find whether a customer had placed any
+SQL> REM: order, if so display the number of orders placed by the customer along with the order number(s).
+SQL> 
+SQL> REM: select * from customer;
+SQL> REM: select * from orders;
+SQL> 
+SQL> declare
+  2  no_records EXCEPTION;
+  3  PRAGMA exception_init(no_records, -20001 );
+  4  c_name customer.cust_name%TYPE;
+  5  range_start DATE;
+  6  range_end DATE;
+  7  num_orders NUMBER(6);
+  8  cursor c1 is
+  9  	     select customer.cust_name, orders.order_no, orders.order_date from customer
+ 10  	     join orders on orders.cust_id = customer.cust_id;
+ 11  begin
+ 12  	     c_name := '&customer_name';
+ 13  	     range_start := to_date('&range_start', 'dd/mm/yyyy');
+ 14  	     range_end := to_date('&range_end', 'dd/mm/yyyy');
+ 15  	     num_orders := 0;
+ 16  	     for record in c1 loop
+ 17  		     if record.cust_name = c_name and record.order_date >= range_start and record.order_date <= range_end then
+ 18  			     if num_orders = 0 then
+ 19  				     dbms_output.put_line('Order numbers of the orders the customer has placed: ');
+ 20  			     end if;
+ 21  			     num_orders := num_orders + 1;
+ 22  			     dbms_output.put_line('Order no.: ' || TO_CHAR(record.order_no));
+ 23  		     end if;
+ 24  	     end loop;
+ 25  	     if num_orders = 0 then
+ 26  		     raise no_records;
+ 27  	     end if;
+ 28  	     dbms_output.put_line('Total number of orders: ' || TO_CHAR(num_orders));
+ 29  	     EXCEPTION
+ 30  		     WHEN no_records then
+ 31  			     dbms_output.put_line('No orders by the given customer in the given time frame!');
+ 32  end;
+ 33  /
+Enter value for customer_name: Gopal
+old  12: 	c_name := '&customer_name';
+new  12: 	c_name := 'Gopal';
+Enter value for range_start: 01/01/2004
+old  13: 	range_start := to_date('&range_start', 'dd/mm/yyyy');
+new  13: 	range_start := to_date('01/01/2004', 'dd/mm/yyyy');
+Enter value for range_end: 01/01/2004
+old  14: 	range_end := to_date('&range_end', 'dd/mm/yyyy');
+new  14: 	range_end := to_date('01/01/2004', 'dd/mm/yyyy');
+No orders by the given customer in the given time frame!                        
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> REM: 3. Display the customer name along with the details of pizza type and its quantity ordered for the
+SQL> REM: given order number. Also find the total quantity ordered for the given order number as shown
+SQL> REM: below:
+SQL> 
+SQL> REM: select * from orders;
+SQL> REM: select * from customer;
+SQL> REM: select * from order_list;
+SQL> 
+SQL> declare
+  2  no_records2 EXCEPTION;
+  3  PRAGMA exception_init(no_records2, -20002 );
+  4  oid orders.order_no%TYPE;
+  5  total_quantity order_list.qty%TYPE;
+  6  name_printed boolean;
+  7  cursor c1 is
+  8  	     select orders.order_no, customer.cust_name, pizza.pizza_type, order_list.qty from orders
+  9  	     join order_list on orders.order_no = order_list.order_no
+ 10  	     join customer on customer.cust_id = orders.cust_id
+ 11  	     join pizza on pizza.pizza_id = order_list.pizza_id;
+ 12  begin
+ 13  	     total_quantity := 0;
+ 14  	     name_printed := false;
+ 15  	     oid := '&oid';
+ 16  	     for record in c1 loop
+ 17  		     if record.order_no = oid then
+ 18  			     if not name_printed then
+ 19  				     dbms_output.put_line('Customer name: ' || record.cust_name);
+ 20  				     name_printed := true;
+ 21  			     end if;
+ 22  			     dbms_output.put_line('Type: ' || record.pizza_type || ' Quantity: ' || record.qty);
+ 23  			     total_quantity := total_quantity + record.qty;
+ 24  		     end if;
+ 25  	     end loop;
+ 26  	     if total_quantity = 0 then
+ 27  		     raise no_records2;
+ 28  	     end if;
+ 29  	     dbms_output.put_line('Total Qty: ' || total_quantity);
+ 30  	     EXCEPTION
+ 31  		     WHEN no_records2 then
+ 32  			     dbms_output.put_line('No such order exists!');
+ 33  end;
+ 34  /
+Enter value for oid: OP001
+old  15: 	oid := '&oid';
+new  15: 	oid := 'OP001';
+No such order exists!                                                           
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> spool off
