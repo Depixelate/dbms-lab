@@ -1,195 +1,322 @@
 SET SERVEROUTPUT ON;
+
 SET ECHO ON;
 
 REM: 1. Ensure that the pizza can be delivered on same day or on the next day only.
 REM: Creating trigger
-CREATE OR REPLACE TRIGGER same_or_next_delv_date
-    BEFORE INSERT OR UPDATE OF order_date, delv_date
-    ON ORDERS
-    FOR EACH ROW
-    WHEN (NEW.delv_date - NEW.order_date >=2 OR NEW.delv_date - NEW.order_date < 0)
+CREATE OR REPLACE TRIGGER SAME_OR_NEXT_DELV_DATE BEFORE
+    INSERT OR UPDATE OF ORDER_DATE, DELV_DATE ON ORDERS FOR EACH ROW WHEN (NEW.DELV_DATE - NEW.ORDER_DATE >=2
+    OR NEW.DELV_DATE - NEW.ORDER_DATE < 0)
 BEGIN
-    raise_application_error(-20001, 'Delivery Date is either before or more than 1 day after the order date');
+    RAISE_APPLICATION_ERROR(-20001, 'Delivery Date is either before or more than 1 day after the order date');
 END;
 /
 
 REM: Testing trigger
 REM: valid insert
-savepoint A;
-select * from orders;
+SAVEPOINT A;
 
-insert into orders values (
+SELECT
+    *
+FROM
+    ORDERS;
+
+INSERT INTO ORDERS VALUES (
     'OP950',
     'c001',
     DATE '2024-09-05',
     DATE '2024-09-05'
 );
 
-select * from orders;
+SELECT
+    *
+FROM
+    ORDERS;
 
 REM: invalid insert
 
-insert into orders values (
+INSERT INTO ORDERS VALUES (
     'OP960',
     'c001',
     DATE '2024-09-05',
     DATE '2024-09-07'
 );
 
-
-select * from orders;
+SELECT
+    *
+FROM
+    ORDERS;
 
 REM: valid UPDATE
 
-update orders
-set delv_date = order_date
-WHERE delv_date > order_date;
+UPDATE ORDERS
+SET
+    DELV_DATE = ORDER_DATE
+WHERE
+    DELV_DATE > ORDER_DATE;
 
-select * from orders;
+SELECT
+    *
+FROM
+    ORDERS;
 
 REM: invalid UPDATE
 
-update orders
-set delv_date = order_date - 1;
+UPDATE ORDERS
+SET
+    DELV_DATE = ORDER_DATE - 1;
 
-select * from orders;
+SELECT
+    *
+FROM
+    ORDERS;
 
-ROLLBACK to A;
+ROLLBACK TO A;
 
 REM: 2. Update the total_amt in ORDERS while entering an order in ORDER_LIST
 
 REM: Adding total_amt to orders
 
-alter table orders ADD total_amt NUMBER;
-update orders outer_ord
-set total_amt = (
-    select SUM(p.unit_price * ol.qty) from orders o
-    join order_list ol on o.order_no = ol.order_no
-    join pizza p on ol.pizza_id = p.pizza_id
-    where o.order_no = outer_ord.order_no
-);
+ALTER TABLE ORDERS ADD TOTAL_AMT NUMBER;
+
+UPDATE ORDERS OUTER_ORD
+SET
+    TOTAL_AMT = (
+        SELECT
+            SUM(P.UNIT_PRICE * OL.QTY)
+        FROM
+            ORDERS     O
+            JOIN ORDER_LIST OL
+            ON O.ORDER_NO = OL.ORDER_NO
+            JOIN PIZZA P
+            ON OL.PIZZA_ID = P.PIZZA_ID
+        WHERE
+            O.ORDER_NO = OUTER_ORD.ORDER_NO
+    );
 
 REM: Declaring TRIGGER
-CREATE OR REPLACE TRIGGER update_total_amt
-    AFTER INSERT OR DELETE OR UPDATE OF pizza_id, qty ON order_list
--- DECLARE
---     new_total_amt orders.total_amt%TYPE;
---     o_id orders.order_no%TYPE;
+CREATE OR REPLACE TRIGGER UPDATE_TOTAL_AMT AFTER
+    INSERT OR DELETE OR UPDATE OF PIZZA_ID, QTY ON ORDER_LIST
+ -- DECLARE
+ --     new_total_amt orders.total_amt%TYPE;
+ --     o_id orders.order_no%TYPE;
 BEGIN
-    -- CASE
-    --     WHEN INSERTING OR UPDATING THEN
-    --         o_id := :NEW.order_no;
-    --     WHEN DELETING THEN
-    --         o_id := :OLD.order_no;
-    -- END CASE;
-    update orders outer_ord
-    set total_amt = (
-        select SUM(p.unit_price * ol.qty) from orders o
-        join order_list ol on o.order_no = ol.order_no
-        join pizza p on ol.pizza_id = p.pizza_id
-        where o.order_no = outer_ord.order_no
-    );
+ -- CASE
+ --     WHEN INSERTING OR UPDATING THEN
+ --         o_id := :NEW.order_no;
+ --     WHEN DELETING THEN
+ --         o_id := :OLD.order_no;
+ -- END CASE;
+    UPDATE ORDERS OUTER_ORD
+    SET
+        TOTAL_AMT = (
+            SELECT
+                SUM(P.UNIT_PRICE * OL.QTY)
+            FROM
+                ORDERS     O
+                JOIN ORDER_LIST OL
+                ON O.ORDER_NO = OL.ORDER_NO
+                JOIN PIZZA P
+                ON OL.PIZZA_ID = P.PIZZA_ID
+            WHERE
+                O.ORDER_NO = OUTER_ORD.ORDER_NO
+        );
 END;
-/ 
+/
 
 REM: testing trigger
 
 SAVEPOINT B;
 
-select * from orders;
-select * from order_list;
-select * from pizza;
+SELECT
+    *
+FROM
+    ORDERS;
+
+SELECT
+    *
+FROM
+    ORDER_LIST;
+
+SELECT
+    *
+FROM
+    PIZZA;
 
 REM: Test insert
 
-INSERT into order_list values (
+INSERT INTO ORDER_LIST VALUES (
     'OP200',
     'p002',
     3
 );
 
-select * from orders;
-select * from order_list;
-select * from pizza;
+SELECT
+    *
+FROM
+    ORDERS;
+
+SELECT
+    *
+FROM
+    ORDER_LIST;
+
+SELECT
+    *
+FROM
+    PIZZA;
 
 REM: Test update
 
-UPDATE order_list
-set pizza_id = 'p005',
-    qty = 4
-WHERE order_no = 'OP200' and pizza_id = 'p002';
+UPDATE ORDER_LIST
+SET
+    PIZZA_ID = 'p005',
+    QTY = 4
+WHERE
+    ORDER_NO = 'OP200'
+    AND PIZZA_ID = 'p002';
 
-select * from orders;
-select * from order_list;
-select * from pizza;
+SELECT
+    *
+FROM
+    ORDERS;
+
+SELECT
+    *
+FROM
+    ORDER_LIST;
+
+SELECT
+    *
+FROM
+    PIZZA;
 
 REM: Test DELETE
-DELETE FROM order_list
-WHERE order_no = 'OP200' and pizza_id = 'p005';
+DELETE FROM ORDER_LIST
+WHERE
+    ORDER_NO = 'OP200'
+    AND PIZZA_ID = 'p005';
 
-select * from orders;
-select * from order_list;
-select * from pizza;
+SELECT
+    *
+FROM
+    ORDERS;
+
+SELECT
+    *
+FROM
+    ORDER_LIST;
+
+SELECT
+    *
+FROM
+    PIZZA;
 
 ROLLBACK TO B;
+
+ALTER TABLE ORDERS DROP COLUMN DISCOUNT_TOTAL;
 
 REM: 3.To give preference to all customers in delivery of pizzas’, a threshold is set on the number of
 REM: orders per day per customer. Ensure that a customer can not place more than 5 orders per day
 
 REM: Creating Trigger
 
-CREATE GLOBAL TEMPORARY TABLE added_rows (
-    order_no ORDERS.order_no%TYPE;
-) ON COMMIT PRESERVE ROWS;
+CREATE GLOBAL TEMPORARY TABLE ADDED_ROWS (
+    ORDER_NO CHAR(5)
+) ON COMMIT DELETE ROWS;
 
-CREATE OR REPLACE TRIGGER max_5_ords_per_cust_per_day
-AFTER INSERT OR UPDATE OF order_date ON ORDERS
-FOR EACH ROW
+CREATE OR REPLACE TRIGGER MAX_5_ORDS_PER_CUST_PER_DAY_ROW AFTER
+    INSERT ON ORDERS FOR EACH ROW
 DECLARE
-    order_count NUMBER;
 BEGIN
-    select COUNT(*) INTO order_count from orders
-    WHERE orders.cust_id = :NEW.cust_id AND orders.order_date = :NEW.order_date;
-    IF order_count >= 5 THEN
-        raise_application_error(-20001, 'A customer is not allowed more than 5 orders a day!');
-    END IF;
+    INSERT INTO ADDED_ROWS VALUES(
+        :NEW.ORDER_NO
+    );
+END;
+/
+
+CREATE OR REPLACE TRIGGER MAX_5_ORDS_PER_CUST_PER_DAY_STATEMENT AFTER
+    INSERT ON ORDERS
+DECLARE
+    CURSOR C1 IS 
+        SELECT * FROM ADDED_ROWS;
+    ORDER_COUNT NUMBER;
+    CID         ORDERS.CUST_ID%TYPE;
+    ODATE       DATE;
+BEGIN
+    FOR ONO IN C1 LOOP
+        SELECT
+            o.CUST_ID,
+            o.ORDER_DATE INTO CID,
+            ODATE
+        FROM
+            ORDERS o
+        WHERE
+            o.ORDER_NO = ONO.ORDER_NO;
+
+        SELECT
+            COUNT(*) INTO ORDER_COUNT
+        FROM
+            ORDERS
+        WHERE
+            ORDERS.CUST_ID = CID
+            AND ORDERS.ORDER_DATE = ODATE;
+        IF ORDER_COUNT > 5 THEN
+            DBMS_OUTPUT.PUT_LINE('Error! '
+                                 || CID
+                                 || ' has placed too many orders today! Deleting order...');
+            DELETE FROM ORDERS o
+            WHERE
+                o.ORDER_NO = ONO.ORDER_NO;
+        END IF;
+    END LOOP;
+
+    DELETE FROM ADDED_ROWS;
 END;
 /
 
 REM: Testing Trigger
 SAVEPOINT C;
-select * from orders;
+
+SELECT
+    *
+FROM
+    ORDERS;
+
 REM: Test insertion
-insert into orders values 
-(
+INSERT INTO ORDERS VALUES (
     'OP901',
     'c001',
     DATE '2015-06-28',
     DATE '2015-06-28',
     0
-),
-(
+);
+
+INSERT INTO ORDERS VALUES (
     'OP902',
     'c001',
     DATE '2015-06-28',
     DATE '2015-06-28',
     0
-),
-(
+);
+
+INSERT INTO ORDERS VALUES (
     'OP903',
     'c001',
     DATE '2015-06-28',
     DATE '2015-06-28',
     0
-),
-(
+);
+
+INSERT INTO ORDERS VALUES (
     'OP904',
     'c001',
     DATE '2015-06-28',
     DATE '2015-06-28',
     0
-),
-(
+);
+
+INSERT INTO ORDERS VALUES (
     'OP905',
     'c001',
     DATE '2015-06-28',
@@ -198,13 +325,11 @@ insert into orders values
 );
 
 REM: Only the first 4 work, the last one goes over the limit
-select * from orders;
+SELECT
+    *
+FROM
+    ORDERS;
 
 REM: Test UPDATING
 
-UPDATE ORDERS
-SET order_date = DATE '2015-06-28'
-WHERE order_no = 'OP500';
-
-select * from orders;
-ROLLBACK to C;
+ROLLBACK TO C;
