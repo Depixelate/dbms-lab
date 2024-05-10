@@ -238,22 +238,24 @@ END;
 CREATE OR REPLACE TRIGGER MAX_5_ORDS_PER_CUST_PER_DAY_STATEMENT AFTER
     INSERT ON ORDERS
 DECLARE
-    CURSOR C1 IS 
-        SELECT * FROM ADDED_ROWS;
+    CURSOR C1 IS
+    SELECT
+        *
+    FROM
+        ADDED_ROWS;
     ORDER_COUNT NUMBER;
     CID         ORDERS.CUST_ID%TYPE;
     ODATE       DATE;
 BEGIN
     FOR ONO IN C1 LOOP
         SELECT
-            o.CUST_ID,
-            o.ORDER_DATE INTO CID,
+            O.CUST_ID,
+            O.ORDER_DATE INTO CID,
             ODATE
         FROM
-            ORDERS o
+            ORDERS O
         WHERE
-            o.ORDER_NO = ONO.ORDER_NO;
-
+            O.ORDER_NO = ONO.ORDER_NO;
         SELECT
             COUNT(*) INTO ORDER_COUNT
         FROM
@@ -265,12 +267,11 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('Error! '
                                  || CID
                                  || ' has placed too many orders today! Deleting order...');
-            DELETE FROM ORDERS o
+            DELETE FROM ORDERS O
             WHERE
-                o.ORDER_NO = ONO.ORDER_NO;
+                O.ORDER_NO = ONO.ORDER_NO;
         END IF;
     END LOOP;
-
     DELETE FROM ADDED_ROWS;
 END;
 /
@@ -333,3 +334,39 @@ FROM
 REM: Test UPDATING
 
 ROLLBACK TO C;
+
+REM: 4. Create a DDL TRIGGER
+REM: Here I am going to create a CREATE TABLE trigger on the database, which occurs before the triggering statement, and prevents any modification to the database.
+CREATE OR REPLACE TRIGGER NO_MODIFY BEFORE DDL ON DATABASE
+DECLARE
+BEGIN
+    RAISE_APPLICATION_ERROR(-20001, 'No modification to the database allowed!');
+END;
+/
+
+REM: TEst TRIGGER
+CREATE TABLE TEST_TABLE (
+    TEST_ATTR NUMBER,
+    OTHER_TEST_ATTR VARCHAR2(255)
+);
+
+SELECT
+    *
+FROM
+    TEST_TABLE;
+
+ALTER TABLE ORDERS ADD TEST_ATTR DATE;
+
+SELECT
+    *
+FROM
+    ORDERS;
+
+DROP TABLE PIZZA;
+
+SELECT
+    *
+FROM
+    PIZZA;
+
+DROP TRIGGER NO_MODIFY;
