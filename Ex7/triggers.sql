@@ -97,30 +97,43 @@ SET
 REM: Declaring TRIGGER
 CREATE OR REPLACE TRIGGER UPDATE_TOTAL_AMT AFTER
     INSERT OR DELETE OR UPDATE OF PIZZA_ID, QTY ON ORDER_LIST
- -- DECLARE
- --     new_total_amt orders.total_amt%TYPE;
- --     o_id orders.order_no%TYPE;
+DECLARE
+    DISC_AMT NUMBER;
+    CURSOR c1 IS
+        SELECT
+            SUM(P.UNIT_PRICE * OL.QTY) total_amt, o.order_no ono
+        FROM
+            ORDERS     O
+            JOIN ORDER_LIST OL
+            ON O.ORDER_NO = OL.ORDER_NO
+            JOIN PIZZA P
+            ON OL.PIZZA_ID = P.PIZZA_ID;
 BEGIN
- -- CASE
- --     WHEN INSERTING OR UPDATING THEN
- --         o_id := :NEW.order_no;
- --     WHEN DELETING THEN
- --         o_id := :OLD.order_no;
- -- END CASE;
-    UPDATE ORDERS OUTER_ORD
-    SET
-        TOTAL_AMT = (
-            SELECT
-                SUM(P.UNIT_PRICE * OL.QTY)
-            FROM
-                ORDERS     O
-                JOIN ORDER_LIST OL
-                ON O.ORDER_NO = OL.ORDER_NO
-                JOIN PIZZA P
-                ON OL.PIZZA_ID = P.PIZZA_ID
-            WHERE
-                O.ORDER_NO = OUTER_ORD.ORDER_NO
-        );
+    FOR record in c1 LOOP
+        DISC_AMT := 0;
+        IF record.total_amt >= 3000 THEN
+            DISC_AMT := 0.20 * record.total_amt;
+            dbms_output.put_line('Total Amount for Order ' || record.ono || ' is >= Rs.3000, so applying a discount of 20%, for a total discount amount of Rs.' || DISC_AMT);
+        END IF;
+        UPDATE ORDERS
+        SET TOTAL_AMT = record.total_amt - disc_amt
+        WHERE order_no = record.ono;
+    END LOOP;
+
+    -- UPDATE ORDERS OUTER_ORD
+    -- SET
+    --     TOTAL_AMT = (
+    --         SELECT
+    --             SUM(P.UNIT_PRICE * OL.QTY)
+    --         FROM
+    --             ORDERS     O
+    --             JOIN ORDER_LIST OL
+    --             ON O.ORDER_NO = OL.ORDER_NO
+    --             JOIN PIZZA P
+    --             ON OL.PIZZA_ID = P.PIZZA_ID
+    --         WHERE
+    --             O.ORDER_NO = OUTER_ORD.ORDER_NO
+    --     );
 END;
 /
 
