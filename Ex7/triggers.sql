@@ -74,6 +74,10 @@ FROM
 ROLLBACK TO A;
 
 REM: 2. Update the total_amt in ORDERS while entering an order in ORDER_LIST
+REM: If total_amt is greater than or equal to a certain amount(Here: Rs.4000), 
+REM: a certain percent discount should be applied to total_amt(Here: 20%).
+REM: The trigger should print both the discount percent, and the total amount saved because of the discount.
+
 
 REM: Adding total_amt to orders
 
@@ -107,13 +111,15 @@ DECLARE
             JOIN ORDER_LIST OL
             ON O.ORDER_NO = OL.ORDER_NO
             JOIN PIZZA P
-            ON OL.PIZZA_ID = P.PIZZA_ID;
+            ON OL.PIZZA_ID = P.PIZZA_ID
+	GROUP BY o.order_no;
 BEGIN
     FOR record in c1 LOOP
         DISC_AMT := 0;
-        IF record.total_amt >= 3000 THEN
+        IF record.total_amt >= 4000 THEN
             DISC_AMT := 0.20 * record.total_amt;
-            dbms_output.put_line('Total Amount for Order ' || record.ono || ' is >= Rs.3000, so applying a discount of 20%, for a total discount amount of Rs.' || DISC_AMT);
+            dbms_output.put_line('Total Amount for Order ' || record.ono || ' is >= Rs.4000, so applying a discount of 20%, for a total discount amount of Rs.' || DISC_AMT);
+	    dbms_output.put_line('Before: ' || TO_CHAR(record.total_amt) || ' After: ' || TO_CHAR(record.total_amt - disc_amt));
         END IF;
         UPDATE ORDERS
         SET TOTAL_AMT = record.total_amt - disc_amt
@@ -229,7 +235,7 @@ ROLLBACK TO B;
 
 ALTER TABLE ORDERS DROP COLUMN DISCOUNT_TOTAL;
 
-REM: 3.To give preference to all customers in delivery of pizzas’, a threshold is set on the number of
+REM: 3.To give preference to all customers in delivery of pizzas, a threshold is set on the number of
 REM: orders per day per customer. Ensure that a customer can not place more than 5 orders per day
 
 REM: Creating Trigger
